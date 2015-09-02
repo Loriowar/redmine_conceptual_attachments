@@ -1,0 +1,3 @@
+module RedmineConceptualAttachments
+  #stub
+end
