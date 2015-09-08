@@ -28,8 +28,8 @@ class ParametrizedAttachment < Attachment
   # validations
 
   def validate_max_file_size
-    if @temp_file && self.filesize > @max_file_size
-      errors.add(:base, l(:error_attachment_too_big, :max_size => @max_file_size))
+    if !@max_file_size.zero? && filesize > @max_file_size
+      errors.add(:base, l(:error_attachment_too_big, max_size: @max_file_size))
     end
   end
 
@@ -39,6 +39,8 @@ class ParametrizedAttachment < Attachment
     @max_file_size ||= Setting.attachment_max_size.to_i.kilobytes
     @filename ||= read_attribute(:filename)
     @target_directory ||= default_target_directory
+
+    self.container_id ||= -1
   end
 
 end
