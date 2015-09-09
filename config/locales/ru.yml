@@ -1,6 +1,6 @@
 # Russian strings go here for Rails i18n
 ru:
-  cunceptual_attachment:
+  conceptual_attachment:
     errors:
       unable_to_save_attachment: Не удалось сохранить файл
       unable_to_obtain_filename: Невозможно определить имя файла

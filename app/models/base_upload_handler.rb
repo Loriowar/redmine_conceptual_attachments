@@ -64,7 +64,7 @@ private
     elsif @file.respond_to?(:original_filename)
       self.filename = @file.original_filename
     else
-      l(:unable_to_obtain_filename, scope: 'cunceptual_attachment.errors')
+      errors.add(:base, l(:unable_to_obtain_filename, scope: 'conceptual_attachment.errors'))
       # return false to break a callback chain
       false
     end

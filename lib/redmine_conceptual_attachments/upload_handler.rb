@@ -26,9 +26,9 @@ module RedmineConceptualAttachments::UploadHandler
         class_eval <<-EOT, __FILE__, __LINE__ + 1
           attr_reader :remove_#{name}, :#{name}_candidates
 
-          after_save :save_#{name}
-          before_save :destroy_#{name}
-          before_destroy :destroy_all_#{name}
+          after_save     :upload_handler_save_#{name}
+          before_save    :upload_handler_destroy_#{name}
+          before_destroy :upload_handler_destroy_all_#{name}
 
           def #{name}
             #{upload_handler.to_s}.where_container(self).to_a.collect(&:attachment_representation)
@@ -41,9 +41,9 @@ module RedmineConceptualAttachments::UploadHandler
             public_send((#{name}_dirtify_column) + '_will_change!')
           end
 
-          alias #{name}_candidates=  #{name}=
+          alias #{name}_candidates= #{name}=
 
-          def save_#{name}
+          def upload_handler_save_#{name}
             result = @#{name}_candidates.blank?
             if @#{name}_candidates.present?
               result = transaction do
@@ -54,7 +54,7 @@ module RedmineConceptualAttachments::UploadHandler
             end
             result.present?
           end
-          private :save_#{name}
+          private :upload_handler_save_#{name}
 
           def remove_#{name}=(val)
             @remove_#{name} =
@@ -65,7 +65,7 @@ module RedmineConceptualAttachments::UploadHandler
             public_send((#{name}_dirtify_column) + '_will_change!') if @remove_#{name}.present?
           end
 
-          def destroy_#{name}
+          def upload_handler_destroy_#{name}
             result = @remove_#{name}.blank?
             if @remove_#{name}.present?
               result = transaction do
@@ -76,9 +76,9 @@ module RedmineConceptualAttachments::UploadHandler
             end
             result.present?
           end
-          private :destroy_#{name}
+          private :upload_handler_destroy_#{name}
 
-          def destroy_all_#{name}
+          def upload_handler_destroy_all_#{name}
             result = #{name}.blank?
             if #{name}.present?
               result = transaction do
@@ -87,15 +87,15 @@ module RedmineConceptualAttachments::UploadHandler
             end
             result.present?
           end
-          private :destroy_all_#{name}
+          private :upload_handler_destroy_all_#{name}
         EOT
       else
         class_eval <<-EOT, __FILE__, __LINE__ + 1
           attr_reader :#{name}_candidate
 
-          after_save :save_#{name}
-          before_save :destroy_#{name}_by_mark
-          before_destroy :destroy_#{name}
+          after_save     :upload_handler_save_#{name}
+          before_save    :upload_handler_destroy_#{name}_by_mark
+          before_destroy :upload_handler_destroy_#{name}
 
           def #{name}
             #{upload_handler.to_s}.where_container(self).first.try(:attachment_representation)
@@ -108,20 +108,19 @@ module RedmineConceptualAttachments::UploadHandler
             public_send((#{name}_dirtify_column) + '_will_change!')
           end
 
-          alias #{name}_candidate=  #{name}=
+          alias #{name}_candidate= #{name}=
 
-          def save_#{name}
-            return false unless destroy_#{name}
-
+          def upload_handler_save_#{name}
             result = @#{name}_candidate.blank?
             if @#{name}_candidate.present?
               result = transaction do
+                upload_handler_destroy_#{name}
                 #{upload_handler}.create(file: @#{name}_candidate, container: self)
               end
             end
             result.present?
           end
-          private :save_#{name}
+          private :upload_handler_save_#{name}
 
           def remove_#{name}
             @remove_#{name} = true
@@ -130,7 +129,7 @@ module RedmineConceptualAttachments::UploadHandler
             public_send((#{name}_dirtify_column) + '_will_change!') if @remove_#{name}.present?
           end
 
-          def destroy_#{name}_by_mark
+          def upload_handler_destroy_#{name}_by_mark
             result = !@remove_#{name}.to_bool
             if @remove_#{name}.to_bool && #{name}.present?
               result = transaction do
@@ -140,13 +139,13 @@ module RedmineConceptualAttachments::UploadHandler
             end
             result.present?
           end
-          private :destroy_#{name}_by_mark
+          private :upload_handler_destroy_#{name}_by_mark
 
-          def destroy_#{name}
+          def upload_handler_destroy_#{name}
             @remove_#{name} = true if #{name}.present?
-            destroy_#{name}_by_mark
+            upload_handler_destroy_#{name}_by_mark
           end
-          private :destroy_#{name}
+          private :upload_handler_destroy_#{name}
         EOT
       end
     end

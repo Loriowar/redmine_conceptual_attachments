@@ -30,10 +30,10 @@ private
 
   def create_attachment
     attachment_ids = same_attachment_ids
-    if attachment_ids.count > 1
+    if attachment_ids.many?
       logger.error{"Duplicated attachments for '#{self.class.name}' with digest='#{digest}'. Ids of attachments: #{same_attachment_ids.join(', ')}"}
       self.parametrized_attachment_id = attachment_ids.first
-    elsif attachment_ids == 1
+    elsif attachment_ids.one?
       self.parametrized_attachment_id = attachment_ids.first
     else
       super
