@@ -26,6 +26,9 @@ module RedmineConceptualAttachments::UploadHandler
         class_eval <<-EOT, __FILE__, __LINE__ + 1
           attr_reader :remove_#{name}, :#{name}_candidates
 
+          before_validation :upload_handler_fill_new_#{name}
+          validate :upload_handler_validate_#{name}
+
           after_save     :upload_handler_save_#{name}
           before_save    :upload_handler_destroy_#{name}
           before_destroy :upload_handler_destroy_all_#{name}
@@ -47,8 +50,8 @@ module RedmineConceptualAttachments::UploadHandler
             result = @#{name}_candidates.blank?
             if @#{name}_candidates.present?
               result = transaction do
-                @#{name}_candidates.each do |candidate|
-                  #{upload_handler}.create(file: candidate, container: self)
+                @#{name}_new_objects.each do |candidate|
+                  candidate.save
                 end
               end
             end
@@ -69,9 +72,11 @@ module RedmineConceptualAttachments::UploadHandler
             result = @remove_#{name}.blank?
             if @remove_#{name}.present?
               result = transaction do
-                #{upload_handler}.where_container(self).
-                    where(parametrized_attachment_id: @remove_#{name}.map(&:id)).
-                    destroy_all
+                @remove_#{name}.each do |attachment|
+                  #{upload_handler}.where_container(self).
+                      where(filename: attachment.filename,
+                            parametrized_attachment_id: attachment.id).destroy_all
+                end
               end
             end
             result.present?
@@ -88,10 +93,34 @@ module RedmineConceptualAttachments::UploadHandler
             result.present?
           end
           private :upload_handler_destroy_all_#{name}
+
+          def upload_handler_fill_new_#{name}
+            if @#{name}_candidates.present?
+              # @todo: somewhere here must be a rejection of duplicates (by filename and digest)
+              @#{name}_new_objects =
+                  @#{name}_candidates.collect do |candidate|
+                    #{upload_handler}.new(file: candidate,
+                                          container: self,
+                                          available_extensions: #{options[:extensions].to_a},
+                                          available_content_types: #{options[:content_types].to_a})
+                  end
+            end
+          end
+          private :upload_handler_fill_new_#{name}
+
+          def upload_handler_validate_#{name}
+            unless @#{name}_new_objects.blank? || @#{name}_new_objects.all?(&:valid?)
+              @#{name}_new_objects.map{|o| o.errors.full_messages}.flatten.uniq.each{|e| errors.add(:base, e)}
+            end
+          end
+          private :upload_handler_validate_#{name}
         EOT
       else
         class_eval <<-EOT, __FILE__, __LINE__ + 1
           attr_reader :#{name}_candidate
+
+          before_validation :upload_handler_fill_new_#{name}
+          validate :upload_handler_validate_#{name}
 
           after_save     :upload_handler_save_#{name}
           before_save    :upload_handler_destroy_#{name}_by_mark
@@ -115,7 +144,7 @@ module RedmineConceptualAttachments::UploadHandler
             if @#{name}_candidate.present?
               result = transaction do
                 upload_handler_destroy_#{name}
-                #{upload_handler}.create(file: @#{name}_candidate, container: self)
+                @#{name}_new_object.save
               end
             end
             result.present?
@@ -146,6 +175,24 @@ module RedmineConceptualAttachments::UploadHandler
             upload_handler_destroy_#{name}_by_mark
           end
           private :upload_handler_destroy_#{name}
+
+          def upload_handler_fill_new_#{name}
+            if @#{name}_candidate.present?
+              @#{name}_new_object =
+                  #{upload_handler}.new(file: @#{name}_candidate,
+                                        container: self,
+                                        available_extensions: #{options[:extensions].to_a},
+                                        available_content_types: #{options[:content_types].to_a})
+            end
+          end
+          private :upload_handler_fill_new_#{name}
+
+          def upload_handler_validate_#{name}
+            unless @#{name}_new_object.blank? || @#{name}_new_object.valid?
+              @#{name}_new_object.errors.full_messages.each{|e| errors.add(:base, e)}
+            end
+          end
+          private :upload_handler_validate_#{name}
         EOT
       end
     end

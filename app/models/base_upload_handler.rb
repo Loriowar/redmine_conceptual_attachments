@@ -2,7 +2,10 @@ class BaseUploadHandler < ActiveRecord::Base
   self.abstract_class = true
   self.table_name = 'attachment_upload_handlers'
 
-  attr_accessor :file, :custom_filename
+  attr_accessor :file,
+                :custom_filename,
+                :available_extensions,
+                :available_content_types
 
   belongs_to :container, polymorphic: true
   belongs_to :parametrized_attachment
@@ -10,6 +13,10 @@ class BaseUploadHandler < ActiveRecord::Base
   belongs_to :updated_by, class_name: 'User'
 
   validates_presence_of :file, :container
+  validate :filename_presence
+  validate :check_max_file_size
+  validate :check_extension
+  validate :check_content_type
 
   before_create  :fill_default
   before_update  :set_updater
@@ -40,6 +47,24 @@ class BaseUploadHandler < ActiveRecord::Base
     self.class.max_file_size
   end
 
+  def filesize
+    @file.size if @file.respond_to?(:size)
+  end
+
+  def content_type
+    if @file.respond_to?(:content_type)
+      @file.content_type.to_s.chomp
+    elsif parametrized_attachment.present?
+      parametrized_attachment.content_type
+    end
+  end
+
+  def extension
+    if dynamic_filename.include?('.')
+      dynamic_filename.split('.').last.underscore
+    end
+  end
+
   # read only attachment record with filled custom values
   def attachment_representation
     parametrized_attachment.tap do |attachment|
@@ -47,6 +72,18 @@ class BaseUploadHandler < ActiveRecord::Base
         attachment.public_send("#{attr}=", public_send(attr))
       end
       attachment.readonly!
+    end
+  end
+
+  def dynamic_filename
+    if custom_filename.present?
+      custom_filename
+    elsif @file.respond_to?(:original_filename)
+      @file.original_filename
+    elsif filename.present?
+      filename
+    else
+      'unknown'
     end
   end
 
@@ -59,15 +96,7 @@ private
   end
 
   def fill_obligates
-    if custom_filename.present?
-      self.filename = custom_filename
-    elsif @file.respond_to?(:original_filename)
-      self.filename = @file.original_filename
-    else
-      errors.add(:base, l(:unable_to_obtain_filename, scope: 'conceptual_attachment.errors'))
-      # return false to break a callback chain
-      false
-    end
+    self.filename = dynamic_filename
   end
 
   def set_updater
@@ -80,5 +109,36 @@ private
 
   def destroy_attachment
     raise NotImplementedError, 'Must be implemented in subclasses'
+  end
+
+  # validations
+
+  def filename_presence
+    unless custom_filename.present? || @file.respond_to?(:original_filename)
+      errors.add(:base, l(:unable_to_obtain_filename, scope: 'conceptual_attachment.errors'))
+    end
+  end
+
+  def check_max_file_size
+    if max_file_size.nonzero? && filesize.to_i > max_file_size
+      errors.add(:base, l(:error_attachment_too_big, max_size: max_file_size))
+    end
+  end
+
+  def check_extension
+    if @available_extensions.to_a.any? && @available_extensions.to_a.exclude?(extension)
+      errors.add(:base, l(:invalid_extension_with_allowed_only_list,
+                          scope: 'conceptual_attachment.errors',
+                          extension: extension,
+                          available_extensions: @available_extensions.join(', ')))
+    end
+  end
+
+  def check_content_type
+    if @available_content_types.to_a.any? && @available_content_types.to_a.exclude?(extension)
+      errors.add(:base, l(:invalid_content_type,
+                          scope: 'conceptual_attachment.errors',
+                          content_type: content_type))
+    end
   end
 end

@@ -4,3 +4,6 @@ ru:
     errors:
       unable_to_save_attachment: Не удалось сохранить файл
       unable_to_obtain_filename: Невозможно определить имя файла
+      file_with_same_content_and_name_already_exist: 'Файл %{filename} уже существует'
+      invalid_extension_with_allowed_only_list: 'Недопустимое расширение %{extension}. Разрешённые форматы: %{available_extensions}'
+      invalid_content_type: 'Недопустимый тип файла: %{content_type}'

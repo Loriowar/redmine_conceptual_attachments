@@ -17,6 +17,7 @@ private
                                       file: @file,
                                       author: User.current)
     if new_attachment.errors.any?
+      # @note: an unreachable section due to a validation from BaseUploadHandler
       logger.error{"Fail to save ParametrizedAttachment:\n#{new_attachment.errors.full_messages.join("\n")}"}
       errors.add(:base, l(:unable_to_save_attachment, scope: 'conceptual_attachment.errors'))
       # return false to break a callback chain
