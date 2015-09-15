@@ -20,6 +20,19 @@ module RedmineConceptualAttachments::UploadHandler
             'id'
           end
         end
+
+        # @todo: replace all below interpolations of upload_handler to using of this method
+        def #{name}_upload_handler
+          #{upload_handler.to_s}
+        end
+
+        def #{name}_multiple_files?
+          #{options[:multiple_files].to_bool}
+        end
+
+        def #{name}_single_file?
+          !#{name}_multiple_files?
+        end
       EOT
 
       if options[:multiple_files].to_bool
@@ -139,9 +152,23 @@ module RedmineConceptualAttachments::UploadHandler
 
           alias #{name}_candidate= #{name}=
 
+          # options must contain follows keys: :source and :name
+          def copy_#{name}_from(options)
+            source_upload_handler_class = options[:source].public_send(options[:name].to_s + '_upload_handler')
+            source_upload_handler = source_upload_handler_class.where_container(options[:source]).first
+            if source_upload_handler.present? && options[:source].public_send(options[:name].to_s + '_single_file?')
+              @#{name}_new_object =
+                  #{upload_handler}.new.copy_from(upload_handler: source_upload_handler,
+                                                  container: self)
+              true
+            else
+              false
+            end
+          end
+
           def upload_handler_save_#{name}
-            result = @#{name}_candidate.blank?
-            if @#{name}_candidate.present?
+            result = @#{name}_new_object.blank?
+            if @#{name}_new_object.present?
               result = transaction do
                 upload_handler_destroy_#{name}
                 @#{name}_new_object.save

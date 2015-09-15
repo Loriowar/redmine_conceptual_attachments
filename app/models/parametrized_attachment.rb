@@ -43,4 +43,8 @@ class ParametrizedAttachment < Attachment
     self.container_id ||= -1
   end
 
+  # redefinition of default callback from Attachment;
+  # file must be deleted without finding of duplications due to absence of them
+  alias delete_from_disk delete_from_disk!
+
 end

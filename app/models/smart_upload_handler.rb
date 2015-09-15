@@ -36,10 +36,19 @@ private
     end
   end
 
+  #copy interface
+
+  def self_copy_action(options = {})
+    self.parametrized_attachment_id = options[:upload_handler].parametrized_attachment_id
+    self.filename = options[:upload_handler].filename
+    self.container = options[:container]
+    self
+  end
+
   # callbacks
 
   def create_attachment
-    attachment_ids = same_attachment_ids
+    attachment_ids = parametrized_attachment_id.present? ? [parametrized_attachment_id] : same_attachment_ids
     if attachment_ids.many?
       logger.error{"Duplicated attachments for '#{self.class.name}' with digest='#{digest}'. Ids of attachments: #{same_attachment_ids.join(', ')}"}
       self.parametrized_attachment_id = attachment_ids.first

@@ -12,7 +12,8 @@ class BaseUploadHandler < ActiveRecord::Base
   belongs_to :created_by, class_name: 'User'
   belongs_to :updated_by, class_name: 'User'
 
-  validates_presence_of :file, :container
+  validates_presence_of :file, if: ->{ parametrized_attachment_id.blank? }
+  validates_presence_of :container
   validate :filename_presence
   validate :check_max_file_size
   validate :check_extension
@@ -83,11 +84,36 @@ class BaseUploadHandler < ActiveRecord::Base
     elsif filename.present?
       filename
     else
-      'unknown'
+      # @todo: maybe here must be an exception or log information
+    end
+  end
+
+  # options must contain follows keys: :upload_handler, :container
+  def copy_from(options)
+    return false unless options.has_key?(:upload_handler) && options.has_key?(:container)
+
+    if same_upload_handler?(options[:upload_handler])
+      self_copy_action(options)
+    else
+      other_copy_action(options)
     end
   end
 
 private
+
+  # copy interface
+
+  def same_upload_handler?(upload_handler)
+    upload_handler.instance_of? self.class
+  end
+
+  def self_copy_action(options = {})
+    raise NotImplementedError, 'Must be implemented in subclasses'
+  end
+
+  def other_copy_action(options = {})
+    raise NotImplementedError, 'Must be implemented in subclasses'
+  end
 
   # callbacks
 
@@ -114,7 +140,7 @@ private
   # validations
 
   def filename_presence
-    unless custom_filename.present? || @file.respond_to?(:original_filename)
+    if dynamic_filename.blank?
       errors.add(:base, l(:unable_to_obtain_filename, scope: 'conceptual_attachment.errors'))
     end
   end
