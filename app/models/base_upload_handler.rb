@@ -49,7 +49,11 @@ class BaseUploadHandler < ActiveRecord::Base
   end
 
   def filesize
-    @file.size if @file.respond_to?(:size)
+    if @file.respond_to?(:size)
+      @file.size
+    elsif parametrized_attachment.present?
+      parametrized_attachment.filesize
+    end
   end
 
   def content_type
