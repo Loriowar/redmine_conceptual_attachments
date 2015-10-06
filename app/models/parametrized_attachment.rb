@@ -9,7 +9,7 @@ class ParametrizedAttachment < Attachment
   # attr_writers
 
   def max_file_size=(val)
-    @max_file_size = val.to_i.zero? ? Setting.attachment_max_size.to_i.kilobytes : val.to_i
+    @max_file_size = val if val.is_a? Fixnum
   end
 
   def filename=(val)
@@ -28,7 +28,7 @@ class ParametrizedAttachment < Attachment
   # validations
 
   def validate_max_file_size
-    if !@max_file_size.zero? && filesize > @max_file_size
+    if @max_file_size > 0 && filesize > @max_file_size
       errors.add(:base, l(:error_attachment_too_big, max_size: @max_file_size))
     end
   end
@@ -36,7 +36,7 @@ class ParametrizedAttachment < Attachment
   # callbacks
 
   def fill_default
-    @max_file_size ||= Setting.attachment_max_size.to_i.kilobytes
+    @max_file_size ||= 0
     @filename ||= read_attribute(:filename)
     @target_directory ||= default_target_directory
 
