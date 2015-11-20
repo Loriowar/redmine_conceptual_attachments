@@ -114,6 +114,7 @@ module RedmineConceptualAttachments::UploadHandler
                   @#{name}_candidates.collect do |candidate|
                     #{upload_handler}.new(file: candidate,
                                           container: self,
+                                          container_type: self.class.name,
                                           available_extensions: #{options[:extensions].to_a},
                                           available_content_types: #{options[:content_types].to_a})
                   end
@@ -208,6 +209,7 @@ module RedmineConceptualAttachments::UploadHandler
               @#{name}_new_object =
                   #{upload_handler}.new(file: @#{name}_candidate,
                                         container: self,
+                                        container_type: self.class.name,
                                         available_extensions: #{options[:extensions].to_a},
                                         available_content_types: #{options[:content_types].to_a})
             end
