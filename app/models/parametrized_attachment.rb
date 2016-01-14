@@ -6,6 +6,12 @@ class ParametrizedAttachment < Attachment
 
   after_initialize :fill_default
 
+  has_many :base_upload_handlers
+
+  def existed_filenames
+    base_upload_handlers.select(:filename).uniq.pluck(:filename)
+  end
+
   # attr_writers
 
   def max_file_size=(val)

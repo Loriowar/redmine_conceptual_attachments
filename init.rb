@@ -10,7 +10,7 @@ Redmine::Plugin.register plugin_name do
 end
 
 Rails.configuration.to_prepare do
-  require_patch plugin_name, %w(attachment)
+  require_patch plugin_name, %w(attachment application_helper)
 end
 
 ActiveRecord::Base.send(:include, RedmineConceptualAttachments::UploadHandler)
