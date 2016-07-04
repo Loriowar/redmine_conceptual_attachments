@@ -145,11 +145,13 @@ module RedmineConceptualAttachments::UploadHandler
           end
 
           def #{name}=(val)
-            @#{name}_candidate =
-                ::RedmineConceptualAttachments::Operations::SingleAssignment.new(object: val).run
+            unless val.nil?
+              @#{name}_candidate =
+                  ::RedmineConceptualAttachments::Operations::SingleAssignment.new(object: val).run
 
-            # @note: mark an attribute as dirty for execute callbacks during save
-            public_send((#{name}_dirtify_column) + '_will_change!')
+              # @note: mark an attribute as dirty for execute callbacks during save
+              public_send((#{name}_dirtify_column) + '_will_change!')
+            end
           end
 
           alias #{name}_candidate= #{name}=
