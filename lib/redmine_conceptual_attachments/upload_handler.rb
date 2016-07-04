@@ -12,7 +12,7 @@ module RedmineConceptualAttachments::UploadHandler
     def upload_handler(name, upload_handler, options = {})
 
       # common methods
-      class_eval <<-EOT, __FILE__, __LINE__ + 1
+      class_eval <<-RUBY, __FILE__, __LINE__ + 1
         def #{name}_dirtify_column
           if '#{options[:dirtify_column]}'.present? && self.class.column_names.include?('#{options[:dirtify_column]}')
             '#{options[:dirtify_column]}'
@@ -33,10 +33,10 @@ module RedmineConceptualAttachments::UploadHandler
         def #{name}_single_file?
           !#{name}_multiple_files?
         end
-      EOT
+      RUBY
 
       if options[:multiple_files].to_bool
-        class_eval <<-EOT, __FILE__, __LINE__ + 1
+        class_eval <<-RUBY, __FILE__, __LINE__ + 1
           attr_reader :remove_#{name}, :#{name}_candidates
 
           before_validation :upload_handler_fill_new_#{name}
@@ -128,9 +128,9 @@ module RedmineConceptualAttachments::UploadHandler
             end
           end
           private :upload_handler_validate_#{name}
-        EOT
+        RUBY
       else
-        class_eval <<-EOT, __FILE__, __LINE__ + 1
+        class_eval <<-RUBY, __FILE__, __LINE__ + 1
           attr_reader :#{name}_candidate
 
           before_validation :upload_handler_fill_new_#{name}
@@ -145,7 +145,8 @@ module RedmineConceptualAttachments::UploadHandler
           end
 
           def #{name}=(val)
-            @#{name}_candidate = val
+            @#{name}_candidate =
+                ::RedmineConceptualAttachments::Operations::SingleAssignment.new(object: val).run
 
             # @note: mark an attribute as dirty for execute callbacks during save
             public_send((#{name}_dirtify_column) + '_will_change!')
@@ -154,17 +155,24 @@ module RedmineConceptualAttachments::UploadHandler
           alias #{name}_candidate= #{name}=
 
           # options must contain follows keys: :source and :name
-          def copy_#{name}_from(options)
+          def copy_#{name}_from_upload_handler(options)
             source_upload_handler_class = options[:source].public_send(options[:name].to_s + '_upload_handler')
             source_upload_handler = source_upload_handler_class.where_container(options[:source]).first
             if source_upload_handler.present? && options[:source].public_send(options[:name].to_s + '_single_file?')
-              @#{name}_new_object =
-                  #{upload_handler}.new.copy_from(upload_handler: source_upload_handler,
-                                                  container: self)
+              public_send(:#{name}=,
+                          #{upload_handler}.copy_operation.new(from: source_upload_handler).run)
               true
             else
               false
             end
+          end
+
+          # options must contain follows keys: :object (obligated) and :wrapper_class (optional, can be obtain automatically)
+          def copy_#{name}_from_external(options)
+            public_send(:#{name}=,
+                        #{upload_handler}.copy_operation.new(from: options[:object],
+                                                             wrapper_class: options[:wrapper_class]).run)
+            true
           end
 
           def upload_handler_save_#{name}
@@ -222,7 +230,7 @@ module RedmineConceptualAttachments::UploadHandler
             end
           end
           private :upload_handler_validate_#{name}
-        EOT
+        RUBY
       end
     end
   end

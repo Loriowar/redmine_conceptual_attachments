@@ -2,6 +2,9 @@ class BaseUploadHandler < ActiveRecord::Base
   self.abstract_class = true
   self.table_name = 'attachment_upload_handlers'
 
+  class_attribute :copy_operation
+  self.copy_operation = RedmineConceptualAttachments::Operations::Copy
+
   attr_accessor :file,
                 :custom_filename,
                 :available_extensions,
@@ -25,8 +28,18 @@ class BaseUploadHandler < ActiveRecord::Base
   before_save    :create_attachment
   before_destroy :destroy_attachment
 
+  scope :within_current_class, -> do
+    where(self.table_name => {type: name})
+  end
+
   scope :where_container, ->(obj) do
-    where(container_id: obj.id, container_type: obj.class.name)
+      where(container_id: obj.id,
+            container_type: obj.class.name)
+  end
+
+  scope :where_digest, ->(digest) do
+      joins(:parametrized_attachment).
+          where(attachments: {digest: digest})
   end
 
   class << self
@@ -92,31 +105,13 @@ class BaseUploadHandler < ActiveRecord::Base
     end
   end
 
-  # options must contain follows keys: :upload_handler, :container
-  def copy_from(options)
-    return false unless options.has_key?(:upload_handler) && options.has_key?(:container)
-
-    if same_upload_handler?(options[:upload_handler])
-      self_copy_action(options)
-    else
-      other_copy_action(options)
-    end
-  end
-
 private
 
   # copy interface
 
+  # @deprecated
   def same_upload_handler?(upload_handler)
     upload_handler.instance_of? self.class
-  end
-
-  def self_copy_action(options = {})
-    raise NotImplementedError, 'Must be implemented in subclasses'
-  end
-
-  def other_copy_action(options = {})
-    raise NotImplementedError, 'Must be implemented in subclasses'
   end
 
   # callbacks

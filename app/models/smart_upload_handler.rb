@@ -15,9 +15,7 @@ class SmartUploadHandler < CommonUploadHandler
   end
 
   def same_attachment_ids
-    self.class.joins(:parametrized_attachment).
-        where(attachments: {digest: digest}).
-        pluck('attachments.id')
+    self.class.where_digest(digest).pluck('attachments.id')
   end
 
   def attachment_multiple_usages?
@@ -27,28 +25,23 @@ class SmartUploadHandler < CommonUploadHandler
 private
 
   def digest
-    if @file.present?
-      @file.rewind
-      # @todo: maybe better to generate a digest through a small buffer
-      digest = Digest::MD5.hexdigest(@file.read)
-      @file.rewind
-      digest
+    unless @file.nil?
+      if @file.respond_to? :digest
+        @file.digest
+      else
+        @file.rewind
+        # @todo: maybe better to generate a digest through a small buffer
+        digest = Digest::MD5.hexdigest(@file.read)
+        @file.rewind
+        digest
+      end
     end
-  end
-
-  #copy interface
-
-  def self_copy_action(options = {})
-    self.parametrized_attachment_id = options[:upload_handler].parametrized_attachment_id
-    self.filename = options[:upload_handler].filename
-    self.container = options[:container]
-    self
   end
 
   # callbacks
 
   def create_attachment
-    attachment_ids = parametrized_attachment_id.present? ? [parametrized_attachment_id] : same_attachment_ids
+    attachment_ids = same_attachment_ids
     if attachment_ids.many?
       logger.error{"Duplicated attachments for '#{self.class.name}' with digest='#{digest}'. Ids of attachments: #{same_attachment_ids.join(', ')}"}
       self.parametrized_attachment_id = attachment_ids.first

@@ -14,3 +14,7 @@ Rails.configuration.to_prepare do
 end
 
 ActiveRecord::Base.send(:include, RedmineConceptualAttachments::UploadHandler)
+
+# @note: all StorageWrappers must be required, otherwise autosearch StorageWrappers will be broken
+require_dependency 'redmine_conceptual_attachments/storage_wrappers/attachment'
+require_dependency 'redmine_conceptual_attachments/storage_wrappers/base_upload_handler'
