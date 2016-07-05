@@ -11,6 +11,8 @@ class RedmineConceptualAttachments::Operations::SingleAssignment
     result =
         if @object.is_a? ActionDispatch::Http::UploadedFile
           @object
+        elsif @object.class.name.deconstantize == RedmineConceptualAttachments::StorageWrappers.name
+          @object
         else
           RedmineConceptualAttachments::Operations::Copy.new(from: @object).run
         end

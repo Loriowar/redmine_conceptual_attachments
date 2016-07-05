@@ -14,11 +14,11 @@ class RedmineConceptualAttachments::Operations::Copy
     wrapper =
         if @wrapper_class
           @wrapper_class
-        elsif @from.is_a? BaseUploadHandler
+        elsif @from.is_a? ::BaseUploadHandler
           RedmineConceptualAttachments::StorageWrappers::BaseUploadHandler
         else
-          if RedmineConceptualAttachments::StorageWrappers.const_defined? @from.class.name
-            RedmineConceptualAttachments::StorageWrappers.const_get(@from.class.name)
+          if RedmineConceptualAttachments::StorageWrappers.const_defined? @from.class.name.demodulize
+            RedmineConceptualAttachments::StorageWrappers.const_get(@from.class.name.demodulize)
           end
         end
 
