@@ -5,7 +5,7 @@ class RedmineConceptualAttachments::StorageWrappers::Attachment
   #   def digest()
   #   def content_type()
   #   def original_filename()
-  #   def read(length) or to_s()
+  #   def read(length) or to_str()
 
   # options must contain follows keys: :object
   def initialize(options)
