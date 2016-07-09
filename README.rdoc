@@ -1,3 +1,0 @@
-= redmine_conceptual_attachments
-
-Description goes here
