@@ -63,4 +63,32 @@ def update_files
 end
 ```
 
-If something goes wrong (for example, user upload note in `pdf` format and/or `binary` file instead of photo), in errors of `@my_document` appear all messages from `upload_handler` validation.
+If something goes wrong (for example, user upload note in `pdf` format and/or `binary` file instead of photo), in errors of `@my_document` appear all messages from `upload_handler` validations.
+
+## Interface
+
+Below describes the methods provided by the plugin, and their arguments.
+
+### Initialization
+
+There is a method `upload_hander`, which available for any subclass of `ActiveRecord::Base`:
+
+```ruby
+class MyDocument < ActiveRecord::Base
+  upload_handler :my_note,
+                 SmartUploadHandler,
+                 multiple_files: false,
+                 extensions: %w(txt),
+                 content_types: ['text/plain']
+end
+```
+
+Arguments of `upload_handler` is follows:
+
+1. `:my_note` - name of pseudo relation and a basis for naming other methods, provided by `upload_handler`;
+2. `SmartUploadHandler` - one of default `UploadHandler` class; this prodive defailt CRUD logic and files are grouped on the basis of of this class;
+3. `options` - hash with additional options; this can contain follows keys:
+  * `:multiple_files` - boolean property; allow attach more then one file to an `upload_handler` pseudo relation (**WARNING:** logic for `true` value still under construction, use on your own risk)
+  * `:dirtify_column` - column of model for marking as [dirty](http://api.rubyonrails.org/classes/ActiveModel/Dirty.html); required for initiate callback chain for validate and save an assigned into `upload_handler` file;
+  * `:extensions` - string array with allowed extensions for file; values is case insensitive, i.e. `extensions: [pdf]` allows to add file like follows: `preview.pdf`, `test.PdF`, `GRADE.PDF` and so on; by default there is no validation on extension;
+  * `:content_types` - string array with allowed content types; behaviour is same as for `:extensions`.
