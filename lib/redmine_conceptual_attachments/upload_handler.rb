@@ -43,6 +43,8 @@ module RedmineConceptualAttachments::UploadHandler
           validate :upload_handler_validate_#{name}
 
           after_save     :upload_handler_save_#{name}
+          # may occur problem in case of multiple save of single AR instance with attached file through upload_handler
+          after_commit   :upload_handler_clear_context_for_#{name}
           before_save    :upload_handler_destroy_#{name}
           before_destroy :upload_handler_destroy_all_#{name}
 
@@ -71,6 +73,12 @@ module RedmineConceptualAttachments::UploadHandler
             result.present?
           end
           private :upload_handler_save_#{name}
+
+          def upload_handler_clear_context_for_#{name}
+            @#{name}_candidates = nil
+            @#{name}_new_objects = nil
+          end
+          private :upload_handler_clear_context_for_#{name}
 
           def remove_#{name}=(val)
             @remove_#{name} =
@@ -137,6 +145,8 @@ module RedmineConceptualAttachments::UploadHandler
           validate :upload_handler_validate_#{name}
 
           after_save     :upload_handler_save_#{name}
+          # may occur problem in case of multiple save of single AR instance with attached file through upload_handler
+          after_commit   :upload_handler_clear_context_for_#{name}
           before_save    :upload_handler_destroy_#{name}_by_mark
           before_destroy :upload_handler_destroy_#{name}
 
@@ -188,6 +198,12 @@ module RedmineConceptualAttachments::UploadHandler
             result.present?
           end
           private :upload_handler_save_#{name}
+
+          def upload_handler_clear_context_for_#{name}
+            @#{name}_candidate = nil
+            @#{name}_new_object = nil
+          end
+          private :upload_handler_clear_context_for_#{name}
 
           def remove_#{name}
             @remove_#{name} = true
